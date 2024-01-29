@@ -1,0 +1,219 @@
+<!doctype html>
+<html>
+    <head>
+        <script>
+            var supercontador = -1;
+            var datosimagenes = [];
+            var temporizador = "";
+            var datos;
+            // Creo una nueva imagen en memoria de javascript
+            var imagen = new Image();
+            var contexto;
+            var contexto2;
+            var contexto3;
+            // Contextos de las referencias
+            var contextos = []
+            var patrones = []
+            var cuentapatrones = []
+            
+            
+            window.onload = function(){
+                // Cargamos el contexto del lienzo 1, podemos pintar en el lienzo 1
+                contexto = document.getElementById("lienzo").getContext("2d");
+                // Cargamos el contexto del lienzo 2, podemos pintar en el lienzo 2
+                contexto2 = document.getElementById("lienzo2").getContext("2d");
+                // Cargamos el contexto del lienzo 3, podemos pintar en el lienzo 3
+                contexto3 = document.getElementById("lienzo3").getContext("2d");
+                // Contextos de las referencias
+                contextos[0] = document.getElementById("lienzovertical").getContext("2d");
+                contextos[1] = document.getElementById("lienzohorizontal").getContext("2d");
+                contextos[2] = document.getElementById("lienzodiagonal1").getContext("2d");
+                contextos[3] = document.getElementById("lienzodiagonal2").getContext("2d");
+                contextos[4] = document.getElementById("lienzo20grados").getContext("2d");
+                contextos[5] = document.getElementById("lienzo20grados2").getContext("2d");
+                contextos[6] = document.getElementById("lienzo60grados").getContext("2d");
+                contextos[7] = document.getElementById("lienzo60grados2").getContext("2d");
+                contextos[8] = document.getElementById("lienzo80grados").getContext("2d");
+                contextos[9] = document.getElementById("lienzo80grados2").getContext("2d");
+                // Patrones                
+                patrones[0] = nuevaImagen("img/vertical.png");
+                patrones[1] = nuevaImagen("img/horizontal.png");
+                patrones[2] = nuevaImagen("img/diagonal1.png");
+                patrones[3] = nuevaImagen("img/diagonal2.png");
+                patrones[4] = nuevaImagen("img/20grados.png");
+                patrones[5] = nuevaImagen("img/20grados2.png");
+                patrones[6] = nuevaImagen("img/60grados.png");
+                patrones[7] = nuevaImagen("img/60grados2.png");
+                patrones[8] = nuevaImagen("img/80grados.png");
+                patrones[9] = nuevaImagen("img/80grados2.png");
+                
+                
+                for(let i = 0;i<patrones.length;i++){
+                    cuentapatrones[i] = 0
+                }
+                
+                fetch("../imagenes/json/imagenes.json")
+                .then(function(response){
+                    return response.json()
+                })
+                .then(function(misdatos){
+                    datos = misdatos
+                    temporizador = setTimeout("bucle()",5000)
+                })
+                
+            }
+            
+            function nuevaImagen(ruta){
+                imagenNueva = new Image();
+                imagenNueva.src = ruta;
+                
+                return imagenNueva;
+            }
+            
+            function bucle(){
+                supercontador++;
+                procesaImagen("../../imagenes/002-procesadas/"+datos[supercontador])
+                clearTimeout(temporizador)
+                temporizador = setTimeout("bucle()",5000)
+            }
+            
+            function procesaImagen(miimagen){
+                // Cargo una imagen que tengo en el disco duro
+                imagen.src = "img/"+miimagen;
+                // La imagen carga y ejecuto esta funcion
+                imagen.onload = function(){
+                //Pinto las referencias
+                for(let i=0;i<patrones.length;i++){
+                    contextos[i].drawImage(patrones[i],0,0)
+                }
+                // Primero pinto la imagen original en el lienzo 1
+                contexto.drawImage(imagen,0,0);
+                // Detectamos bordes en la imagen
+                // Primero cargamos la imagen 1 en memoria
+                let imagenlienzo1 = contexto.getImageData(0,0,512,512);
+                // Luego cargamos la imagen 2 en memoria
+                let imagenlienzo2 = contexto2.getImageData(0,0,512,512);
+                // Para cada uno de los piexeles de la imagen
+                for(let i = 0;i<imagenlienzo1.data.length;i+=4){//Recorro pixel a pixel la imagen fila a fila
+                    let diferencia = Math.abs(imagenlienzo1.data[i] - imagenlienzo1.data[i+4])// Diferencia horizontal en el color rojo
+                    let diferencia2 = Math.abs(imagenlienzo1.data[i] - imagenlienzo1.data[i+512*4]) // Diferencia vertical
+                    if(diferencia >10 || diferencia2 > 10){// si la diferencia es notable, esto nos pinta un pixel negro
+                        imagenlienzo2.data[i] = 0;
+                        imagenlienzo2.data[i+1] = 0;
+                        imagenlienzo2.data[i+2] = 0;
+                        imagenlienzo2.data[i+3] = 255;
+                    }else{ // pixel blanco
+                        imagenlienzo2.data[i] = 255;
+                        imagenlienzo2.data[i+1] = 255;
+                        imagenlienzo2.data[i+2] = 255;
+                        imagenlienzo2.data[i+3] = 255;
+                        }
+                    }
+                    // Por último, pongo la imagen
+                    contexto2.putImageData(imagenlienzo2,0,0);
+                    //Borro el tercer lienzo para que no pinte encima del anterior
+                    contexto3.clearRect(0,0,512,512);
+                    // Ahora recorro la imagen que he pintado con bordes y busco los pixeles verticales, comparandolos con el patron vertical
+                    let muestravertical = contextos[0].getImageData(0,0,8,8)
+                    for(let x = 0;x<512;x++){
+                        for(let y = 0;y<512;y++){
+                            let trozo = contexto2.getImageData(x,y,8,8) // 8 porque la imagen de los patrones es de 8px
+                            let suma = 0;
+                            for(let i = 0;i<trozo.data.length;i+=4){
+                                suma += Math.abs(trozo.data[i] - muestravertical.data[i])
+                            }
+                            if(suma < 4000){
+                                cuentapatrones[0]++
+                                contexto3.fillStyle = "red";
+                                contexto3.fillRect(x,y,2,2);
+                            }
+                        }
+                    }
+                    // Ahora recorro la imagen para los horizontales
+                    let muestrahorizontal = contextos[1].getImageData(0,0,8,8)
+                    for(let x = 0;x<512;x++){
+                        for(let y = 0;y<512;y++){
+                            let trozo = contexto2.getImageData(x,y,8,8) // 8 porque la imagen de los patrones es de 8px
+                            let suma = 0;
+                            for(let i = 0;i<trozo.data.length;i+=4){
+                                suma += Math.abs(trozo.data[i] - muestrahorizontal.data[i])
+                            }
+                            if(suma < 4000){
+                                cuentapatrones[1]++
+                                contexto3.fillStyle = "blue";
+                                contexto3.fillRect(x,y,2,2);
+                            }
+                         }
+                    }
+                    //Recorro la imagen para diagonal 1
+                    let muestradiagonal1 = contextos[2].getImageData(0,0,8,8)
+                    for(let x = 0;x<512;x++){
+                        for(let y = 0;y<512;y++){
+                            let trozo = contexto2.getImageData(x,y,8,8) // 8 porque la imagen de los patrones es de 8px
+                            let suma = 0;
+                            for(let i = 0;i<trozo.data.length;i+=4){
+                                suma += Math.abs(trozo.data[i] - muestradiagonal1.data[i])
+                            }
+                            if(suma < 4000){
+                                cuentapatrones[2]++
+                                contexto3.fillStyle = "green";
+                                contexto3.fillRect(x,y,2,2);
+                            }
+                        }
+                    }
+                    //Recorro la imagen para diagonal 2
+                    let muestradiagonal2 = contextos[3].getImageData(0,0,8,8)
+                    for(let x = 0;x<512;x++){
+                        for(let y = 0;y<512;y++){
+                            let trozo = contexto2.getImageData(x,y,8,8) // 8 porque la imagen de los patrones es de 8px
+                            let suma = 0;
+                            for(let i = 0;i<trozo.data.length;i+=4){
+                                suma += Math.abs(trozo.data[i] - muestradiagonal2.data[i])
+                            }
+                            if(suma < 4000){
+                                 cuentapatrones[3]++
+                                 contexto3.fillStyle = "orange";
+                                 contexto3.fillRect(x,y,2,2);
+                            }
+                        }
+                    }
+                    
+                    console.log(cuentapatrones)
+                    let total = 0;
+                    for(i = 0;i<cuentapatrones.length;i++){
+                        total += cuentapatrones[i]
+                     }
+                    for(i = 0;i<cuentapatrones.length;i++){
+                        cuentapatrones[i] /= total
+                    }
+                    console.log(cuentapatrones)
+                    let guarda = JSON.stringify(cuentapatrones)
+                    let rutacompleta = miimagen
+                    let soloimagen = rutacompleta.split("/")[rutacompleta.split("/").length-1]
+                    let quitonumero = soloimagen.split("-")[1]
+                    let quitoextension = quitonumero.split(".")[0]
+                        
+                    fetch("guardajson2.php?archivo="+soloimagen+"&patron="+quitoextension+"&datos="+guarda)
+                }
+            }
+        </script>
+        <style>
+            canvas{border:1px solid black;}
+        </style>
+    </head>
+    <body>
+        <canvas  width=512 height=512 id="lienzo"></canvas>
+        <canvas  width=512 height=512 id="lienzo2"></canvas>
+        <canvas  width=512 height=512 id="lienzo3"></canvas>
+        <canvas  width=8 height=8 id="lienzovertical"></canvas>
+        <canvas  width=8 height=8 id="lienzohorizontal"></canvas>
+        <canvas  width=8 height=8 id="lienzodiagonal1"></canvas>
+        <canvas  width=8 height=8 id="lienzodiagonal2"></canvas>
+        <canvas  width=8 height=8 id="lienzo20grados"></canvas>
+        <canvas  width=8 height=8 id="lienzo20grados2"></canvas>
+        <canvas  width=8 height=8 id="lienzo60grados"></canvas>
+        <canvas  width=8 height=8 id="lienzo60grados2"></canvas>
+        <canvas  width=8 height=8 id="lienzo80grados"></canvas>
+        <canvas  width=8 height=8 id="lienzo80grados2"></canvas>
+    </body>
+</html>

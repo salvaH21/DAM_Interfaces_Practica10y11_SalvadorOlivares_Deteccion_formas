@@ -1,0 +1,83 @@
+<!doctype html>
+<html>
+    <head>
+        <script>
+            window.onload = function(){
+                // Patrones
+                var patrones = []
+                patrones[0] = new Image();
+                patrones[0].src = "vertical.png";
+                patrones[1] = new Image();
+                patrones[1].src = "horizontal.png";
+                // Cargamos el contexto del lienzo 1, podemos pintar en el lienzo 1
+                var contexto = document.getElementById("lienzo").getContext("2d");
+                // Cargamos el contexto del lienzo 2, podemos pintar en el lienzo 2
+                var contexto2 = document.getElementById("lienzo2").getContext("2d");
+                // Cargamos el contexto del lienzo 3, podemos pintar en el lienzo 3
+                var contexto3 = document.getElementById("lienzo3").getContext("2d");
+                // Contextos de las referencias
+                var contextovertical = document.getElementById("lienzovertical").getContext("2d");
+                var contextohorizontal = document.getElementById("lienzohorizontal").getContext("2d");
+                // Creo una nueva imagen en memoria de javascript
+                let imagen = new Image();
+                // Cargo una imagen que tengo en el disco duro
+                imagen.src = "mano.jpg"
+                // La imagen carga y ejecuto esta funcion
+                imagen.onload = function(){
+                    //Pinto las referencias
+                    contextovertical.drawImage(patrones[0],0,0)
+                    contextohorizontal.drawImage(patrones[1],0,0)
+                    // Primero pinto la imagen original en el lienzo 1
+                    contexto.drawImage(imagen,0,0);
+                    // Detectamos bordes en la imagen
+                    // Primero cargamos la imgen 1 en memoria
+                    let imagenlienzo1 = contexto.getImageData(0,0,408,612);
+                    // Luego cargamos la imgen 2 en memoria
+                    let imagenlienzo2 = contexto2.getImageData(0,0,408,612);
+                    // Para cada uno de los piexeles de la imagen
+                    for(let i = 0;i<imagenlienzo1.data.length;i+=4){//Recorro pixel a pixel la imagen fila a fila
+                        let diferencia = Math.abs(imagenlienzo1.data[i] - imagenlienzo1.data[i+4])// Diferencia horizontal en el color rojo
+                        let diferencia2 = Math.abs(imagenlienzo1.data[i] - imagenlienzo1.data[i+408*4]) // Diferencia vertical
+                        if(diferencia >10 || diferencia2 > 10){// si la diferencia es notable, esto nos pinta un pixel negro
+                            imagenlienzo2.data[i] = 0;
+                            imagenlienzo2.data[i+1] = 0;
+                            imagenlienzo2.data[i+2] = 0;
+                            imagenlienzo2.data[i+3] = 255;
+                        }else{ // pixel blanco
+                            imagenlienzo2.data[i] = 255;
+                            imagenlienzo2.data[i+1] = 255;
+                            imagenlienzo2.data[i+2] = 255;
+                            imagenlienzo2.data[i+3] = 255;
+                        }
+                    }
+                    // Por último, pongo la imagen
+                    contexto2.putImageData(imagenlienzo2,0,0);
+                    // Ahora recorro la imagen que he pintado con bordes y busco los pixeles verticales, comparandolos con el patron vertical
+                    let muestravertical = contextovertical.getImageData(0,0,8,8)
+                    for(let x = 0;x<408;x++){
+                        for(let y = 0;y<612;y++){
+                            let trozo = contexto2.getImageData(x,y,8,8) // 8 porque la imagen de los patrones es de 8px
+                            let suma = 0;
+                            for(let i = 0;i<trozo.data.length;i+=4){
+                                suma += Math.abs(trozo.data[i] - muestravertical.data[i])
+                            }
+                            if(suma < 2000){
+                                contexto3.fillRect(x,y,2,2)
+                            }
+                        }
+                    }
+                }
+            }
+        </script>
+        <style>
+            canvas{border:1px solid black;}
+        </style>
+    </head>
+    <body>
+        <canvas  width=408 height=612 id="lienzo"></canvas>
+        <canvas  width=408 height=612 id="lienzo2"></canvas>
+        <canvas  width=408 height=612 id="lienzo3"></canvas>
+        <canvas  width=8 height=8 id="lienzovertical"></canvas>
+        <canvas  width=8 height=8 id="lienzohorizontal"></canvas>
+    </body>
+</html>
